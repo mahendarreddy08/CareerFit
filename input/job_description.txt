@@ -1,0 +1,11 @@
+Python Developer Intern
+
+Requirements:
+Python
+Git
+REST APIs
+SQL
+FastAPI
+Docker
+Linux
+GitHub
