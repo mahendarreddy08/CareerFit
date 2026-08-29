@@ -1,5 +1,4 @@
 import io
-import os
 import zipfile
 
 from docx import Document
@@ -22,11 +21,16 @@ def _is_supported_pdf(file_bytes):
 
 
 def _is_supported_docx(file_bytes):
+    source = file_bytes if hasattr(file_bytes, "read") else io.BytesIO(file_bytes)
     try:
-        with zipfile.ZipFile(io.BytesIO(file_bytes)) as archive:
+        source.seek(0)
+        with zipfile.ZipFile(source) as archive:
             return "word/document.xml" in archive.namelist()
     except zipfile.BadZipFile:
         return False
+    finally:
+        if hasattr(file_bytes, "read"):
+            source.seek(0)
 
 
 def _validate_uploaded_file(file_bytes, filename):
@@ -53,7 +57,9 @@ def _validate_uploaded_file(file_bytes, filename):
 
 def extract_text_from_pdf(file_bytes):
     try:
-        reader = PdfReader(io.BytesIO(file_bytes))
+        source = file_bytes if hasattr(file_bytes, "read") else io.BytesIO(file_bytes)
+        source.seek(0)
+        reader = PdfReader(source)
         pages = []
         for page in reader.pages:
             text = page.extract_text() or ""
@@ -66,7 +72,9 @@ def extract_text_from_pdf(file_bytes):
 
 def extract_text_from_docx(file_bytes):
     try:
-        document = Document(io.BytesIO(file_bytes))
+        source = file_bytes if hasattr(file_bytes, "read") else io.BytesIO(file_bytes)
+        source.seek(0)
+        document = Document(source)
     except Exception as exc:  # pragma: no cover - defensive branch
         raise ExtractionError("The uploaded DOCX could not be read. Please upload a valid DOCX resume.") from exc
 
@@ -86,18 +94,42 @@ def extract_text_from_docx(file_bytes):
 
 
 def extract_text_from_file(file_obj, filename=None):
-    if hasattr(file_obj, "read"):
-        file_bytes = file_obj.read()
-    else:
-        file_bytes = file_obj
+    resolved_filename = filename or getattr(file_obj, "filename", "") or ""
 
+    if hasattr(file_obj, "read"):
+        stream = file_obj
+        try:
+            stream.seek(0, io.SEEK_END)
+            file_size = stream.tell()
+            stream.seek(0)
+            file_header = stream.read(4)
+            stream.seek(0)
+        except (AttributeError, OSError) as exc:
+            raise ExtractionError("The uploaded resume file could not be read.") from exc
+
+        if file_size == 0:
+            raise ExtractionError("The uploaded resume file is empty.")
+        if file_size > MAX_FILE_SIZE:
+            raise ExtractionError("The uploaded resume file is too large. Please use a file smaller than 10 MB.")
+
+        normalized_name = resolved_filename.lower()
+        if normalized_name.endswith(".pdf"):
+            if file_header != b"%PDF":
+                raise ExtractionError("The uploaded PDF file is unreadable or corrupt.")
+            return extract_text_from_pdf(stream)
+        if normalized_name.endswith(".docx"):
+            if not _is_supported_docx(stream):
+                raise ExtractionError("The uploaded DOCX file is unreadable or corrupt.")
+            return extract_text_from_docx(stream)
+
+        raise ExtractionError("Unsupported file type. Please upload a PDF or DOCX resume.")
+
+    file_bytes = file_obj
     if isinstance(file_bytes, str):
         file_bytes = file_bytes.encode("utf-8")
-
     if file_bytes is None:
         raise ExtractionError("The uploaded resume file is empty.")
 
-    resolved_filename = filename or getattr(file_obj, "filename", "") or ""
     _validate_uploaded_file(file_bytes, resolved_filename)
 
     normalized_name = resolved_filename.lower()

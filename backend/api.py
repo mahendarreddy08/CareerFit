@@ -1,7 +1,10 @@
+import asyncio
 import logging
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from starlette.concurrency import run_in_threadpool
 
 from .extractor import ExtractionError, extract_text_from_file
 from .matcher import (
@@ -16,6 +19,11 @@ from .score import calculate_weighted_score
 
 app = FastAPI()
 logger = logging.getLogger(__name__)
+MAX_REQUEST_SIZE = 12 * 1024 * 1024
+MAX_RESUME_TEXT_CHARS = 200_000
+MAX_JOB_DESCRIPTION_CHARS = 100_000
+ANALYSIS_TIMEOUT_SECONDS = 30
+analysis_semaphore = asyncio.Semaphore(1)
 
 
 class CareerFitRequest(BaseModel):
@@ -39,6 +47,9 @@ job_weights = {
 def analyze_resume_text(resume: str, job_description: str):
     resume_text = (resume or "").strip()
     job_text = (job_description or "").strip()
+
+    if len(resume_text) > MAX_RESUME_TEXT_CHARS or len(job_text) > MAX_JOB_DESCRIPTION_CHARS:
+        raise HTTPException(status_code=413, detail="Resume or job description is too large to analyze.")
 
     resume_skills = find_skills(resume_text)
     job_skills = find_skills(job_text)
@@ -79,9 +90,28 @@ def home():
     return {"message": "CareerFit API is running"}
 
 
+@app.middleware("http")
+async def limit_request_size(request: Request, call_next):
+    content_length = request.headers.get("content-length")
+    if content_length:
+        try:
+            if int(content_length) > MAX_REQUEST_SIZE:
+                return JSONResponse(status_code=413, content={"detail": "Request is too large."})
+        except ValueError:
+            return JSONResponse(status_code=400, content={"detail": "Invalid Content-Length header."})
+    return await call_next(request)
+
+
 @app.post("/analyze")
-def analyze(request: CareerFitRequest):
-    return analyze_resume_text(request.resume, request.job_description)
+async def analyze(request: CareerFitRequest):
+    try:
+        async with analysis_semaphore:
+            return await asyncio.wait_for(
+                run_in_threadpool(analyze_resume_text, request.resume, request.job_description),
+                timeout=ANALYSIS_TIMEOUT_SECONDS,
+            )
+    except asyncio.TimeoutError as exc:
+        raise HTTPException(status_code=504, detail="Analysis timed out. Please try a smaller input and retry.") from exc
 
 
 @app.post("/analyze-file")
@@ -93,7 +123,17 @@ async def analyze_file(
         raise HTTPException(status_code=400, detail="Job description is required.")
 
     try:
-        extracted_text = extract_text_from_file(resume_file.file, resume_file.filename)
+        async with analysis_semaphore:
+            extracted_text = await asyncio.wait_for(
+                run_in_threadpool(extract_text_from_file, resume_file.file, resume_file.filename),
+                timeout=ANALYSIS_TIMEOUT_SECONDS,
+            )
+            result = await asyncio.wait_for(
+                run_in_threadpool(analyze_resume_text, extracted_text, job_description),
+                timeout=ANALYSIS_TIMEOUT_SECONDS,
+            )
+    except asyncio.TimeoutError as exc:
+        raise HTTPException(status_code=504, detail="Analysis timed out. Please try a smaller input and retry.") from exc
     except ExtractionError as exc:
         status_code = 415 if "unsupported file type" in str(exc).lower() else 400
         raise HTTPException(status_code=status_code, detail=str(exc)) from exc
@@ -108,4 +148,4 @@ async def analyze_file(
         extracted_text[:160],
     )
 
-    return analyze_resume_text(extracted_text, job_description)
+    return result
