@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
@@ -13,6 +15,7 @@ from .score import calculate_weighted_score
 
 
 app = FastAPI()
+logger = logging.getLogger(__name__)
 
 
 class CareerFitRequest(BaseModel):
@@ -47,6 +50,17 @@ def analyze_resume_text(resume: str, job_description: str):
     weighted_score = calculate_weighted_score(matched_skills, job_skills, job_weights)
     priority_skills = prioritize_missing_skills(missing_skills, job_weights)
     recommendations = generate_recommendation(priority_skills)
+
+    logger.info(
+        "Analysis input: resume_chars=%d job_chars=%d resume_skills=%s job_skills=%s matched=%s basic_score=%.2f weighted_score=%.2f",
+        len(resume_text),
+        len(job_text),
+        resume_skills,
+        job_skills,
+        matched_skills,
+        basic_score,
+        weighted_score,
+    )
 
     return {
         "resume_skills": resume_skills,
@@ -86,5 +100,12 @@ async def analyze_file(
 
     if not extracted_text.strip():
         raise HTTPException(status_code=400, detail="The uploaded resume file is empty or could not be read.")
+
+    logger.info(
+        "Resume extraction: filename=%s extracted_chars=%d preview=%r",
+        resume_file.filename,
+        len(extracted_text),
+        extracted_text[:160],
+    )
 
     return analyze_resume_text(extracted_text, job_description)
