@@ -11,6 +11,6 @@ if ! kill -0 "$BACKEND_PID" 2>/dev/null; then
   exit 1
 fi
 
-cd /app/frontend
+cd /app/frontend/apps/web
 PORT=${PORT:-3000}
 exec env HOSTNAME=0.0.0.0 npm run start -- --hostname 0.0.0.0 --port "${PORT}"
