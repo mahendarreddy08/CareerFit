@@ -12,8 +12,9 @@ export type CareerFitResponse = {
 }
 
 export type CareerFitRequest = {
-  resume: string
+  resume?: string
   job_description: string
+  file?: File
 }
 
 const apiUrl = (process.env.NEXT_PUBLIC_CAREERFIT_API_URL || "http://127.0.0.1:8001").replace(/\/$/, "")
@@ -38,18 +39,39 @@ function isCareerFitResponse(value: unknown): value is CareerFitResponse {
 
 export async function analyzeCareerFit(request: CareerFitRequest): Promise<CareerFitResponse> {
   let response: Response
+
   try {
-    response = await fetch(typeof window === "undefined" ? `${apiUrl}/analyze` : "/api/analyze", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(request),
-    })
+    if (request.file) {
+      const formData = new FormData()
+      formData.append("resume_file", request.file)
+      formData.append("job_description", request.job_description)
+
+      response = await fetch(typeof window === "undefined" ? `${apiUrl}/analyze-file` : "/api/analyze-file", {
+        method: "POST",
+        body: formData,
+      })
+    } else {
+      response = await fetch(typeof window === "undefined" ? `${apiUrl}/analyze` : "/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resume: request.resume ?? "", job_description: request.job_description }),
+      })
+    }
   } catch {
     throw new Error("CareerFit is unavailable right now. Check that the analysis service is running and try again.")
   }
 
   if (!response.ok) {
-    throw new Error("CareerFit could not complete this analysis. Please check your inputs and try again.")
+    let message = "CareerFit could not complete this analysis. Please check your inputs and try again."
+    try {
+      const errorBody = await response.json() as { detail?: string }
+      if (errorBody.detail) {
+        message = errorBody.detail
+      }
+    } catch {
+      // Ignore invalid JSON and keep the default message.
+    }
+    throw new Error(message)
   }
 
   let data: unknown
