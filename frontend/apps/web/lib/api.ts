@@ -17,7 +17,26 @@ export type CareerFitRequest = {
   file?: File
 }
 
-const apiUrl = (process.env.NEXT_PUBLIC_CAREERFIT_API_URL || "http://127.0.0.1:8001").replace(/\/$/, "")
+const apiUrl = (process.env.BACKEND_URL || process.env.NEXT_PUBLIC_CAREERFIT_API_URL || "http://127.0.0.1:8001").replace(/\/$/, "")
+
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}, timeoutMs = 15000): Promise<Response> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    })
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("Backend not reachable, please retry.")
+    }
+    throw error
+  } finally {
+    clearTimeout(timer)
+  }
+}
 
 function isCareerFitResponse(value: unknown): value is CareerFitResponse {
   if (!value || typeof value !== "object") return false
@@ -46,18 +65,21 @@ export async function analyzeCareerFit(request: CareerFitRequest): Promise<Caree
       formData.append("resume_file", request.file)
       formData.append("job_description", request.job_description)
 
-      response = await fetch(typeof window === "undefined" ? `${apiUrl}/analyze-file` : "/api/analyze-file", {
+      response = await fetchWithTimeout(typeof window === "undefined" ? `${apiUrl}/analyze-file` : "/api/analyze-file", {
         method: "POST",
         body: formData,
-      })
+      }, 15000)
     } else {
-      response = await fetch(typeof window === "undefined" ? `${apiUrl}/analyze` : "/api/analyze", {
+      response = await fetchWithTimeout(typeof window === "undefined" ? `${apiUrl}/analyze` : "/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resume: request.resume ?? "", job_description: request.job_description }),
-      })
+      }, 15000)
     }
-  } catch {
+  } catch (error) {
+    if (error instanceof Error && error.message === "Backend not reachable, please retry.") {
+      throw error
+    }
     throw new Error("CareerFit is unavailable right now. Check that the analysis service is running and try again.")
   }
 

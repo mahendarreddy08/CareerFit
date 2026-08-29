@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-const apiUrl = (process.env.NEXT_PUBLIC_CAREERFIT_API_URL || "http://127.0.0.1:8001").replace(/\/$/, "")
+const apiUrl = (process.env.BACKEND_URL || process.env.NEXT_PUBLIC_CAREERFIT_API_URL || "http://127.0.0.1:8001").replace(/\/$/, "")
 
 export async function POST(request: Request) {
   try {

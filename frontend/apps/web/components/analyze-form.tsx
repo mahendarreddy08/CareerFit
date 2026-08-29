@@ -13,7 +13,7 @@ export function AnalyzeForm() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [fileError, setFileError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [status, setStatus] = useState<"idle" | "uploading" | "analyzing" | "error">("idle")
 
   function handleFile(file: File | undefined) {
     if (!file) return
@@ -22,12 +22,14 @@ export function AnalyzeForm() {
     if (!isSupportedType) {
       setSelectedFile(null)
       setFileError("Please choose a PDF or DOCX file.")
+      setStatus("error")
       return
     }
 
     if (file.size > MAX_FILE_SIZE_BYTES) {
       setSelectedFile(null)
       setFileError("Your file is too large. Please upload a resume smaller than 10 MB.")
+      setStatus("error")
       return
     }
 
@@ -35,6 +37,7 @@ export function AnalyzeForm() {
     setSelectedFile(file)
     setResumeText("")
     setSubmitError(null)
+    setStatus("uploading")
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -45,16 +48,18 @@ export function AnalyzeForm() {
 
     if (!hasResumeText && !hasFile) {
       setSubmitError("Add your resume by uploading a PDF/DOCX or pasting the text.")
+      setStatus("error")
       return
     }
 
     if (!jobDescription.trim()) {
       setSubmitError("Add the job description for the role you want to target.")
+      setStatus("error")
       return
     }
 
     setSubmitError(null)
-    setIsAnalyzing(true)
+    setStatus(hasFile ? "uploading" : "analyzing")
 
     try {
       const result: CareerFitResponse = hasFile
@@ -67,11 +72,12 @@ export function AnalyzeForm() {
             job_description: jobDescription.trim(),
           })
 
+      setStatus("analyzing")
       sessionStorage.setItem("careerfit-analysis", JSON.stringify(result))
       router.push("/analyzing")
     } catch (error) {
+      setStatus("error")
       setSubmitError(error instanceof Error ? error.message : "CareerFit could not complete this analysis. Please try again.")
-      setIsAnalyzing(false)
     }
   }
 
@@ -117,7 +123,9 @@ export function AnalyzeForm() {
           <section className="workflow-section workflow-submit">
             <p className="field-label">03 / Analyze</p>
             {submitError && <p className="form-error">{submitError}</p>}
-            <button type="submit" disabled={isAnalyzing || !canAnalyze} className="primary-action primary-action-wide">{isAnalyzing ? "Analyzing your fit..." : "Analyze my fit →"}</button>
+            {status === "uploading" && <p className="form-hint">Uploading resume…</p>}
+            {status === "analyzing" && <p className="form-hint">Analyzing your fit…</p>}
+            <button type="submit" disabled={status === "uploading" || status === "analyzing" || !canAnalyze} className="primary-action primary-action-wide">{status === "uploading" ? "Uploading…" : status === "analyzing" ? "Analyzing…" : "Analyze my fit →"}</button>
             {!submitError && !canAnalyze && <p className="form-hint">{selectedFile ? "Add the job description to continue." : !resumeText.trim() ? "Paste your resume text or add a PDF/DOCX resume to continue." : "Add the job description to continue."}</p>}
           </section>
         </div>
