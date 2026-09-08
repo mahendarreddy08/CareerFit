@@ -1,16 +1,22 @@
-import { Inter } from "next/font/google"
+import { Inter, Playfair_Display } from "next/font/google"
 
 import "@workspace/ui/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Nav } from "@/components/nav"
+import { DemoDock } from "@/components/demo-dock"
 import { cn } from "@workspace/ui/lib/utils"
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" })
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  weight: ["400", "500", "600", "700"],
+})
 
 export const metadata = {
-  title: "CareerFit — Know your fit. Close the gap.",
+  title: "CareerFit AI — Know Your Gap. Build Your Career.",
   description:
-    "Compare your experience with any role and see what matches, what is missing, and what matters next.",
+    "AI-powered career readiness that understands where you are, identifies what you're missing, and shows you exactly what to do next.",
 }
 
 export default function RootLayout({
@@ -22,13 +28,18 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("antialiased scroll-smooth", inter.variable, "font-sans")}
+      className={cn(
+        "dark antialiased scroll-smooth",
+        inter.variable,
+        playfair.variable,
+      )}
     >
-      <body className="min-h-svh bg-background text-foreground selection:bg-[#7e8164]/20 selection:text-foreground">
+      <body className="min-h-svh bg-background text-foreground selection:bg-accent/20 selection:text-foreground">
         <ThemeProvider>
-          <div className="min-h-svh bg-[linear-gradient(to_bottom,_rgba(23,23,20,0.02),_transparent_28%)]">
+          <div className="cf-bg-atmosphere">
             <Nav />
-            <main>{children}</main>
+            <main className="pb-16">{children}</main>
+            <DemoDock />
           </div>
         </ThemeProvider>
       </body>

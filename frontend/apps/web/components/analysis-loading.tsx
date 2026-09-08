@@ -6,9 +6,9 @@ import { cn } from "@workspace/ui/lib/utils"
 
 const steps = [
   { label: "Reading your resume", delay: 400 },
-  { label: "Identifying skills", delay: 1000 },
-  { label: "Comparing role requirements", delay: 1600 },
-  { label: "Calculating fit", delay: 2200 },
+  { label: "Extracting skills & experience", delay: 1000 },
+  { label: "Matching against role requirements", delay: 1800 },
+  { label: "Calculating your CareerFit score", delay: 2400 },
 ]
 
 export function AnalysisLoading() {
@@ -23,15 +23,24 @@ export function AnalysisLoading() {
 
   return (
     <div className="loading-page editorial-shell">
-      <p className="eyebrow">CareerFit / Analysis engine</p>
+      <p className="eyebrow">CareerFit AI · Analysis Engine</p>
       <h1>Analyzing your career fit</h1>
 
-      <ul className="mt-12 w-full space-y-4">
+      <div className="loading-viz">
+        <div className="loading-ring" />
+        <div className="loading-ring" />
+        <div className="loading-ring" />
+        <div className="loading-ring-center">
+          <div className="loading-ring-dot" />
+        </div>
+      </div>
+
+      <div className="loading-steps">
         {steps.map((step, index) => {
           const isDone = index < completed
           const isActive = index === completed
           return (
-            <li
+            <div
               key={step.label}
               className={cn(
                 "loading-step",
@@ -41,20 +50,21 @@ export function AnalysisLoading() {
               )}
             >
               {isDone ? (
-                <Check className="h-4 w-4 text-accent" />
+                <Check className="h-4 w-4" style={{ color: "var(--accent)" }} />
               ) : (
                 <Circle
                   className={cn(
                     "h-4 w-4",
-                    isActive && "animate-pulse text-accent",
+                    isActive && "animate-pulse",
                   )}
+                  style={isActive ? { color: "var(--accent)" } : undefined}
                 />
               )}
               <span>{step.label}</span>
-            </li>
+            </div>
           )
         })}
-      </ul>
+      </div>
     </div>
   )
 }

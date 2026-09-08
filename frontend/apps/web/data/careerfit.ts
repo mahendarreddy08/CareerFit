@@ -14,8 +14,17 @@ export type AnalysisResult = {
 }
 
 export const placeholderAnalysis: AnalysisResult = {
-  score: 53.57,
-  matchedSkills: ["Python", "Git", "GitHub", "REST API"],
+  score: 78,
+  matchedSkills: [
+    "Python",
+    "C",
+    "Git",
+    "GitHub",
+    "REST API",
+    "Data Structures",
+    "Problem Solving",
+    "Algorithms",
+  ],
   skillGaps: [
     { name: "FastAPI", priority: "Critical" },
     { name: "SQL", priority: "High" },
@@ -32,20 +41,30 @@ export const placeholderAnalysis: AnalysisResult = {
 export const howItWorks = [
   {
     step: "01",
-    title: "Add your resume",
+    title: "Discover",
+    subtitle: "Understand where you are.",
     description:
-      "Upload a PDF or DOCX, or paste your resume text directly. CareerFit reads your experience and extracts the skills you already have.",
+      "Upload your resume and let our AI extract every skill, technology, and experience — building a complete profile of your capabilities.",
   },
   {
     step: "02",
-    title: "Add the target role",
+    title: "Identify",
+    subtitle: "See what stands between you and your goal.",
     description:
-      "Paste the job description for the role you want. CareerFit identifies the skills the role actually requires.",
+      "Compare your profile against your target role's requirements. Our AI maps every gap with precision.",
   },
   {
     step: "03",
-    title: "See your fit and next move",
+    title: "Build",
+    subtitle: "Know exactly what to learn next.",
     description:
-      "Get a clear match score, see what you already have, what is missing, and which skill to learn next.",
+      "Get AI-prioritized recommendations and a personalized learning roadmap ranked by career impact.",
+  },
+  {
+    step: "04",
+    title: "Become Ready",
+    subtitle: "Turn preparation into opportunity.",
+    description:
+      "Track your progress from skill gaps to career readiness. When you're ready, you'll know it.",
   },
 ]
