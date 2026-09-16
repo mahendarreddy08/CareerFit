@@ -1,0 +1,26 @@
+plugins = []
+headers = []
+redirects = []
+
+[functions]
+
+[functions."*"]
+
+[build]
+publish = "C:\\Users\\reddy\\OneDrive\\Desktop\\CareerFit\\frontend\\apps\\web\\frontend\\apps\\web"
+publishOrigin = "default"
+base = "C:\\Users\\reddy\\OneDrive\\Desktop\\CareerFit\\frontend\\apps\\web"
+
+[build.environment]
+
+[build.processing]
+
+[build.processing.css]
+
+[build.processing.html]
+
+[build.processing.images]
+
+[build.processing.js]
+
+[build.services]

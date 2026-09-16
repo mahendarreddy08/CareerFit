@@ -1,6 +1,17 @@
+"use client"
+
 import Link from "next/link"
+import dynamic from "next/dynamic"
 import { ArrowRight, ChevronRight, CheckCircle2, Compass, Layers, Briefcase, Award } from "lucide-react"
-import { Career3DModel } from "@/components/career-3d-model"
+
+const Hero3DScene = dynamic(() => import("@/components/hero-3d-scene"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center">
+      <div className="w-16 h-16 rounded-full border-2 border-[#5ce1e6]/30 border-t-[#5ce1e6] animate-spin" />
+    </div>
+  ),
+})
 
 export default function LandingPage() {
   const fourStages = [
@@ -75,13 +86,20 @@ export default function LandingPage() {
 
   return (
     <div className="cf-bg-atmosphere min-h-screen">
-      {/* ─── Hero Section ─── */}
-      <section className="editorial-shell pt-20 pb-12 md:pt-28 md:pb-20">
-        <div className="grid lg:grid-cols-12 gap-10 items-center">
+      {/* ─── Hero Section with Full 3D Background ─── */}
+      <section className="relative editorial-shell pt-20 pb-12 md:pt-28 md:pb-20 overflow-hidden">
+        {/* 3D Scene as full background */}
+        <div className="absolute inset-0 z-0" style={{ minHeight: "600px" }}>
+          <Hero3DScene />
+        </div>
+        {/* Gradient overlay so text is readable */}
+        <div className="absolute inset-0 z-[1] bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
+
+        <div className="relative z-[2] grid lg:grid-cols-12 gap-10 items-center">
           {/* Left Column: Headline & Value Proposition */}
           <div className="lg:col-span-7">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded bg-white/[0.04] border border-white/[0.08] mb-6">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#5ce1e6]" />
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded bg-white/[0.04] border border-white/[0.08] mb-6 backdrop-blur-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#5ce1e6] animate-pulse" />
               <span className="text-[11px] font-mono tracking-wider uppercase text-white/70">
                 Smart India Hackathon 2026 · AI Career Companion
               </span>
@@ -90,10 +108,10 @@ export default function LandingPage() {
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-normal leading-[1.08] tracking-tight text-white mb-6">
               Your Career. <br />
               Your Path. <br />
-              <span className="italic text-white/70 font-light">Your Next Step.</span>
+              <span className="italic text-[#5ce1e6]/90 font-light">Your Next Step.</span>
             </h1>
 
-            <p className="text-base sm:text-lg text-white/60 leading-relaxed max-w-xl mb-10 font-normal">
+            <p className="text-base sm:text-lg text-white/60 leading-relaxed max-w-xl mb-10 font-normal backdrop-blur-sm">
               CareerFit AI understands where you are, where you want to go, and
               what you should do next — guiding you from first year to placement.
             </p>
@@ -102,16 +120,14 @@ export default function LandingPage() {
               <Link href="/onboarding" className="btn-accent text-sm py-3 px-6">
                 Start Your Career Journey <ArrowRight className="w-4 h-4 ml-1" />
               </Link>
-              <a href="#journey" className="btn-secondary text-sm py-3 px-6">
+              <a href="#journey" className="btn-secondary text-sm py-3 px-6 backdrop-blur-sm">
                 Explore CareerFit
               </a>
             </div>
           </div>
 
-          {/* Right Column: Interactive 3D Career Intelligence Model */}
-          <div className="lg:col-span-5 flex justify-center items-center">
-            <Career3DModel />
-          </div>
+          {/* Right Column: Empty space — 3D fills this area */}
+          <div className="lg:col-span-5 hidden lg:block" />
         </div>
 
         {/* ── Hero Next Best Action Interactive Preview ── */}
